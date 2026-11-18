@@ -14,10 +14,7 @@ from app import system_info
 # The only units we accept. FastAPI rejects anything else with a 422 error.
 SizeUnit = Literal["B", "KB", "MB", "GB"]
 
-AVAILABLE_METRICS = ["system", "cpu", "memory", "disk", "network"]
-
-# If RAM usage goes above this percentage, /health reports "degraded".
-MEMORY_DEGRADED_THRESHOLD = 90.0
+AVAILABLE_METRICS = ["system", "cpu", "memory", "disk"]
 
 app = FastAPI(
     title="Server Health & Metrics API",
@@ -38,16 +35,10 @@ def root():
 
 @app.get("/health")
 def health():
-    """Liveness check. Reports "degraded" when memory usage is too high."""
-    memory_percent = system_info.get_memory_info("GB")["usage_percent"]
-    status = "degraded" if memory_percent > MEMORY_DEGRADED_THRESHOLD else "ok"
+    """Liveness check. If this answers, the service is up."""
     return {
-        "status": status,
+        "status": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "checks": {
-            "memory_usage_percent": memory_percent,
-            "memory_threshold_percent": MEMORY_DEGRADED_THRESHOLD,
-        },
     }
 
 
@@ -59,7 +50,6 @@ def all_metrics(unit: SizeUnit = "GB"):
         "cpu": system_info.get_cpu_info(),
         "memory": system_info.get_memory_info(unit),
         "disk": system_info.get_disk_info(system_info.default_disk_path(), unit),
-        "network": system_info.get_network_info(unit),
     }
 
 
@@ -90,12 +80,6 @@ def disk_metrics(path: str | None = None, unit: SizeUnit = "GB"):
         return system_info.get_disk_info(path, unit)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Path not found: {path}")
-
-
-@app.get("/metrics/network")
-def network_metrics(unit: SizeUnit = "MB"):
-    """Network traffic since boot. Example: /metrics/network?unit=GB"""
-    return system_info.get_network_info(unit)
 
 
 # This catch-all route MUST stay last, or it would swallow the routes above.

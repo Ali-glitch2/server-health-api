@@ -1,6 +1,6 @@
 # Server Health & Metrics API
 
-A lightweight REST API built with **FastAPI** that reports the health and resource usage of the machine it runs on: CPU, memory, disk, network and uptime.
+A lightweight REST API built with **FastAPI** that reports the health and resource usage of the machine it runs on: CPU, memory, disk and uptime.
 
 It works like a minimal version of monitoring agents such as Prometheus Node Exporter. Its `/health` endpoint follows the pattern used by Kubernetes liveness probes, load balancer health checks and Docker `HEALTHCHECK`.
 
@@ -11,9 +11,9 @@ It works like a minimal version of monitoring agents such as Prometheus Node Exp
 
 ## Features
 
-- **Health check** endpoint that reports `ok` or `degraded` based on memory pressure
+- **Health check** endpoint for load balancers and orchestrators
 - **System metrics**: hostname, OS, architecture, Python version, uptime
-- **CPU, memory, disk and network** usage via [`psutil`](https://github.com/giampaolo/psutil)
+- **CPU, memory and disk** usage via [`psutil`](https://github.com/giampaolo/psutil)
 - **Unit conversion** (`B`, `KB`, `MB`, `GB`) through query parameters
 - **Input validation**: invalid values return a clear `422` error
 - **Error handling**: unknown metrics and missing disk paths return `404` with a helpful message
@@ -25,13 +25,12 @@ It works like a minimal version of monitoring agents such as Prometheus Node Exp
 | Method | Endpoint | Description | Query parameters |
 |--------|----------|-------------|------------------|
 | GET | `/` | Welcome message and endpoint list | – |
-| GET | `/health` | Service health (`ok` / `degraded`) | – |
+| GET | `/health` | Liveness check (`ok` + timestamp) | – |
 | GET | `/metrics` | All metrics in one response | `unit` (default `GB`) |
 | GET | `/metrics/system` | Hostname, OS, Python version, uptime | – |
 | GET | `/metrics/cpu` | CPU usage % and core counts | – |
 | GET | `/metrics/memory` | RAM total / used / available | `unit` (default `GB`) |
 | GET | `/metrics/disk` | Disk usage for a drive | `path`, `unit` (default `GB`) |
-| GET | `/metrics/network` | Bytes/packets sent and received, errors, drops | `unit` (default `MB`) |
 
 ### Example responses
 
@@ -39,11 +38,7 @@ It works like a minimal version of monitoring agents such as Prometheus Node Exp
 ```json
 {
   "status": "ok",
-  "timestamp": "2026-11-18T21:10:25.430668+00:00",
-  "checks": {
-    "memory_usage_percent": 81.6,
-    "memory_threshold_percent": 90.0
-  }
+  "timestamp": "2026-11-18T21:10:25.430668+00:00"
 }
 ```
 
@@ -61,7 +56,7 @@ It works like a minimal version of monitoring agents such as Prometheus Node Exp
 `GET /metrics/gpu` → **404**
 ```json
 {
-  "detail": "Unknown metric 'gpu'. Available metrics: ['system', 'cpu', 'memory', 'disk', 'network']"
+  "detail": "Unknown metric 'gpu'. Available metrics: ['system', 'cpu', 'memory', 'disk']"
 }
 ```
 
@@ -121,18 +116,11 @@ The API is now available at **http://127.0.0.1:8000**.
 ```bash
 curl http://127.0.0.1:8000/health
 curl "http://127.0.0.1:8000/metrics/memory?unit=MB"
-curl "http://127.0.0.1:8000/metrics/network?unit=GB"
 curl -i http://127.0.0.1:8000/metrics/gpu          # 404 example
 curl "http://127.0.0.1:8000/metrics/memory?unit=TB" # 422 validation example
 ```
 
 > On Windows PowerShell, use `curl.exe` instead of `curl`.
-
-## Configuration
-
-| Setting | Location | Default | Purpose |
-|---------|----------|---------|---------|
-| `MEMORY_DEGRADED_THRESHOLD` | `app/main.py` | `90.0` | RAM usage % above which `/health` reports `degraded` |
 
 ## Troubleshooting
 

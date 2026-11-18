@@ -69,22 +69,6 @@ def get_memory_info(unit: str) :
     }
 
 
-def get_network_info(unit: str):
-    """Network traffic totals since the machine booted (all network cards combined)."""
-    net = psutil.net_io_counters()
-    return {
-        "unit": unit,
-        "bytes_sent": convert_bytes(net.bytes_sent, unit),
-        "bytes_received": convert_bytes(net.bytes_recv, unit),
-        "packets_sent": net.packets_sent,
-        "packets_received": net.packets_recv,
-        "errors_in": net.errin,
-        "errors_out": net.errout,
-        "dropped_in": net.dropin,
-        "dropped_out": net.dropout,
-    }
-
-
 def default_disk_path() :
     """The root of the main drive: 'C:\\' on Windows, '/' on Linux and macOS."""
     return os.path.abspath(os.sep)
